@@ -27,29 +27,39 @@ selected_soundtrack = random.choice(soundtracks)
 pygame.mixer.music.load(selected_soundtrack)
 
 # Set volume and play the music
-pygame.mixer.music.set_volume(0.60)
-pygame.mixer.music.play(-1, 0.0, 10000)
+pygame.mixer.music.set_volume(0.50)
+pygame.mixer.music.play(-1, 0.0, 15000)
 
 # load images
 background_img=pygame.image.load('Soul of Londor/public/images/6yvp9ih93wv31.webp')
+
+#define fonts
+font_path = "Soul of Londor/public/Uncracked Free Trial-6d44.woff"
+custom_font = pygame.font.Font(font_path, 68)
+fontty='Soul of Londor/public/DragonHunter-9Ynxj.otf'
+font = pygame.font.Font(fontty, 40)
 
 # drawing background
 def set_bg():
     screen.blit(background_img,(0,0))
     # sets text position
     draw_text(f'Hollow Knight', font, white, 197, 90)
-    draw_text(f'Voidborne Harbinger', font, white, 1417, 80)
+    draw_text(f'Voidborne Harbinger', font, white, 1317, 80)
 
 # create window
 screen= pygame.display.set_mode((screen_height,width))
 pygame.display.set_caption('Souls of Londor')
 
-#define fonts
-font = pygame.font.SysFont('Poppins', 44)
+
+
 
 #define colours
 red = (117, 24, 24)
 white = (255,255,255)
+black=(0,0,0)
+purple=(193,50,255)
+gold=(198,194,81)
+green=(69,159,66)
 
 #create function for drawing text
 def draw_text(text, font, text_col, x, y):
@@ -99,15 +109,19 @@ class Fighter():
         #attack buttons 
         mouse_buttons = pygame.mouse.get_pressed()
         if mouse_buttons[0]:  # Left mouse button
-            draw_text("Light Attack!",font, white,320, 200)
-            self.attack_type=1
-        elif mouse_buttons[1]:  # Left mouse button
-            draw_text("Combo Attack!",font, white,320, 200)
+            if key[pygame.K_LSHIFT]:  # Right mouse button
+                draw_text("ULTIMATE",custom_font, gold, 197, 180)
+                self.attack_type=4
+            else:
+                draw_text("LIGHT ATTACK",custom_font, green,197, 180)
+                self.attack_type=1
+        elif mouse_buttons[1]:  # middle mouse button
+            draw_text("SPECIAL ATTACK",custom_font, purple,197, 180)
             self.attack_type=2
         elif mouse_buttons[2]:  # Right mouse button
-            draw_text("Heavy Attack!",font, white, 320, 200)
+            draw_text("HEAVY ATTACK",custom_font, red, 197, 180)
             self.attack_type=3
-
+       
         # Apply gravity
         dy += GRAVITY
 
@@ -120,6 +134,9 @@ class Fighter():
         self.rect.x += dx  
         self.rect.y += dy 
 
+    # method for attacking
+    def attack(self):
+        pass
 
     def update(self):
         animation_cooldown=100
@@ -157,7 +174,7 @@ boss1= Fighter(1520,750,'boss1',10520,650,0)
 
 # set position of health bar
 knight_health_bar = HealthBar(197, 135, knight.hp, knight.max_hp,100)
-boss1_health_bar = HealthBar(1417, 125, boss1.hp, boss1.max_hp,500)
+boss1_health_bar = HealthBar(1317, 125, boss1.hp, boss1.max_hp,500)
 
 run=True
 while run:
