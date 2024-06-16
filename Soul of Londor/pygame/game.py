@@ -3,6 +3,7 @@ import pygame
 from pygame import mixer
 import random
 import sys
+import button
 
 # initialise module
 mixer.init()
@@ -37,8 +38,10 @@ sword_fx.set_volume(0.2)
 magic_fx = pygame.mixer.Sound("public/sword-battle-jingle-loop-96983.mp3")
 magic_fx.set_volume(1)
 bomb_fx=pygame.mixer.Sound("public/hq-explosion-6288.mp3")
+
 # load images
 background_img=pygame.image.load('public/images/6yvp9ih93wv31.webp')
+potion_img= pygame.image.load('public/images/Elden-Ring-Flask-of-Wondrous-Physick.webp')
 
 #define fonts
 font_path = "public/Uncracked Free Trial-6d44.woff"
@@ -67,13 +70,12 @@ black=(0,0,0)
 purple=(193,50,255)
 gold=(198,194,81)
 green=(69,159,66)
+potion_effect = 15
 
 #create function for drawing text
 def draw_text(text, font, text_col, x, y):
 	img = font.render(text, True, text_col)
 	screen.blit(img, (x, y))
-     
-
 
 
 def game_over_screen():
@@ -87,14 +89,20 @@ def game_over_screen():
     while game_over:
         # Display the faded image as the background
         screen.blit(faded_image, (0, 0))
+        game_over_font =font
+        # Display victory 
+        if boss1.hp <= 0:
+            
+            game_over_text = game_over_font.render("LEGEND FELLED", True, (255, 255, 255))
+            
         
-        # Display game over message
-        game_over_font = pygame.font.Font(None, 50)
-        game_over_text = game_over_font.render("Game Over", True, (255, 255, 255))
+        # Display defeat
+        if knight.hp<=0:
+            game_over_text = game_over_font.render("YOU DIED", True, (255, 255, 255))
+        
         screen.blit(game_over_text, (width // 2 + 200, screen_height // 4))
-        
         # Display options as interactive buttons
-        options_font = pygame.font.Font(None, 36)
+        options_font = pygame.font.Font(font_path, 36)
         
         # Play Again Button
         play_again_text = options_font.render("Play Again", True, (255, 255, 255))
@@ -111,11 +119,12 @@ def game_over_screen():
         pygame.display.update()
         
         # Handle events
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        for event in pygame.event.get(): 
+            key = pygame.key.get_pressed()
+            if event.type == pygame.QUIT or key[pygame.K_ESCAPE]:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN or key[pygame.K_RETURN]:
                 mouse_pos = pygame.mouse.get_pos()
                 if play_again_rect.collidepoint(mouse_pos):
                     # Reset game state
@@ -283,12 +292,12 @@ class Fighter():
 
         if self.cooldown <= 0:
             # Define movement constraints
-            MAX_DX = 300  
+            MAX_DX = 400  
             MAX_DY = 200  
 
 
-            # Calculate the maximum x and y boundaries
-            max_x = screen_width - self.rect.width
+            # Calculate the maximum x and y bounaaries
+            max_x = screen_width 
             max_y = screen_height - self.rect.height*3
 
             # Generate random values for movement within constraints
@@ -407,18 +416,9 @@ class Fighter():
         for attack_type in self.cooldowns:
             if self.cooldowns[attack_type] > 0:
                 self.cooldowns[attack_type] -= 1
-            
-                    
-                   
-               
-                   
-                
-
-
   
     def draw(self,screen):
         screen.blit(pygame.transform.flip(self.image, self.flip, False),self.rect)
-    
     
 class HealthBar():
     def __init__(self, x, y, hp, max_hp, width):
@@ -445,22 +445,26 @@ class HealthBar():
         health_font = pygame.font.SysFont(None, 24)
         health_text = health_font.render(str(self.hp) + '/' + str(self.max_hp), True, white)
         screen.blit(health_text, (self.x + self.width + 10, self.y))
+   
 
 
 
 #set position of characters   
-knight = Fighter(327, 800, True, 'player', 500, 50, 3,(sword_fx))
+knight = Fighter(327, 800, True, 'player', 1500, 50, 3,(sword_fx))
 boss1 = Fighter(1520, 750, False, 'boss1', 10520, 650, 0,magic_fx)
 
 # set position of health bar
 knight_health_bar = HealthBar(197, 135, knight.hp, knight.max_hp,100)
 boss1_health_bar = HealthBar(1317, 125, boss1.hp, boss1.max_hp,350)
 
-run=True
+# creating buttons
+potion_button=button.Button(screen,457,125,potion_img,64,64)
+
+run = True
 while run:
     # draw bg
     set_bg()  
-    knight.move(width,screen_height)
+    knight.move(width, screen_height)
     # Call AI move function for boss1
     boss1.ai_move(width, screen_height)
 
@@ -474,10 +478,26 @@ while run:
     clock.tick(fps)
     knight_health_bar.draw(knight.hp)
     boss1_health_bar.draw(boss1.hp)
-    # AI behavior for boss1
-    if pygame.time.get_ticks() - boss1.update_time > 3000:  # Adjust the interval between attacks (in milliseconds)
-        boss1.ai_attack(knight)  # Call the AI attack method
-        boss1.update_time = pygame.time.get_ticks()  # Reset the update time
+    # control player actions
+    # reset action variables
+    attack = False
+    potion = False
+    target = None
+
+    if potion_button.draw():
+        potion = True
+        # show number of potions remaining
+    draw_text(str(knight.potions), font, white, 427, 137)
+    if potion == True:
+        if knight.potions > 0:
+            # check if the potion would heal the player beyond max health
+            if knight.max_hp - knight.hp > potion_effect:
+                heal_amount = potion_effect
+            else:
+                heal_amount = knight.max_hp - knight.hp
+            knight.hp += heal_amount
+            knight.potions -= 1
+
     if boss1.hp <= 0 or knight.hp <= 0:
         game_over_screen()
 
