@@ -35,9 +35,9 @@ pygame.mixer.music.play(-1, 0.0, 5000)
 
 sword_fx = pygame.mixer.Sound("public/bloody-blade-103593.mp3")
 sword_fx.set_volume(0.2)
-magic_fx = pygame.mixer.Sound("public/sword-battle-jingle-loop-96983.mp3")
-magic_fx.set_volume(1)
-bomb_fx=pygame.mixer.Sound("public/hq-explosion-6288.mp3")
+magic_fx = pygame.mixer.Sound("public\\hq-explosion-6288.mp3")
+magic_fx.set_volume(0.3)
+
 
 # load images
 background_img=pygame.image.load('public/images/6yvp9ih93wv31.webp')
@@ -70,7 +70,7 @@ black=(0,0,0)
 purple=(193,50,255)
 gold=(198,194,81)
 green=(69,159,66)
-potion_effect = 15
+potion_effect = 250
 
 #create function for drawing text
 def draw_text(text, font, text_col, x, y):
@@ -83,8 +83,6 @@ def game_over_screen():
     
     # Load the faded image
     faded_image = pygame.image.load("public\\images\\6yvp9ih93wv31.webp").convert_alpha()
-    faded_image.set_alpha(150)  # Set transparency level (0-255)
-
 
     while game_over:
         # Display the faded image as the background
@@ -130,6 +128,7 @@ def game_over_screen():
                     # Reset game state
                     knight.hp = knight.max_hp
                     boss1.hp = boss1.max_hp
+                    knight.potions=knight.start_potion
                     knight.rect.center = (327, 800)
                     boss1.rect.center = (1520, 750)
                     game_over = False
@@ -158,8 +157,9 @@ def game_over_screen():
                     sys.exit()
 
 
+
 class Fighter():
-    def __init__(self, x, y, flip, name, max_hp, atk, potions,sound):
+    def __init__(self, x, y, flip, name, max_hp, atk, potions, sound):
         self.name = name
         self.max_hp = max_hp
         self.hp = max_hp
@@ -168,28 +168,29 @@ class Fighter():
         self.start_potion = potions
         self.potions = potions
         self.alive = True
-        self.action=0
+        self.action = 0
         self.animation_list = []
         self.frame_index = 0
         self.attack_type = 0
         self.attacking = False
-        self.attack_type = 0
-         # Cooldown attributes
         self.cooldown=0
-
         self.cooldowns = {
             1: 0,  # Light Attack
             2: 0,  # Special Attack
             3: 0,  # Heavy Attack
-            4: 0   # Ultimate Attack
+            4: 0,  # Ultimate Attack
+            "ai_attack": 0
         }
-        self.cooldown_duration = 60  # Cooldown duration in frames
-
-        self.cooldown_duration = 2  # Adjust as needed
+        self.cooldown_durations = {
+            1: 50,  # Light Attack cooldown duration
+            2: 200,  # Special Attack cooldown duration
+            3: 500,  # Heavy Attack cooldown duration
+            4: 1000   # Ultimate Attack cooldown duration
+        }
         self.attack_sound = sound
-        self.hit=False
-        self.jump=False
-        self.running=False
+        self.hit = False
+        self.jump = False
+        self.running = False
         self.update_time = pygame.time.get_ticks()
         for i in range(2):
             img = pygame.image.load(f'public/images/{self.name}/0/idle{i}.png')
@@ -198,34 +199,20 @@ class Fighter():
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.vel_y = 0
-           # Load the attack effect image
 
+        # Initialize font
+        self.font = pygame.font.Font(None, 36)
 
     def flip_image(self):
         self.image = pygame.transform.flip(self.animation_list[self.frame_index], True, False)
     
     def update_action(self, new_action):
-    # Check if the new action is different from the previous one
         if new_action != self.action:
             self.action = new_action
-            # Update the animation list based on the action
-            if self.attack_type == 0:  # Light Attack
-                self.animation_list = [pygame.image.load(f'public/images/{self.name}/{self.action}/idle{i}.png') for i in range(2)]
-            elif self.action == 1:  # Special Attack
-                self.animation_list = [pygame.image.load(f'public/images/{self.name}/{self.action}/idle{i}.png') for i in range(2)]
-            elif self.action == 3:  # Heavy Attack
-                self.animation_list = [pygame.image.load(f'public/images/{self.name}/{self.action}/idle{i}.png') for i in range(2)]
-            elif self.action == 4:  # Ultimate Attack
-                self.animation_list = [pygame.image.load(f'public/images/{self.name}/{self.action}/idle{i}.png') for i in range(2)]
-            else:  # Default idle animation
-                self.animation_list = [pygame.image.load(f'public/images/{self.name}/0/idle{i}.png') for i in range(2)]
-            # Update animation settings
             self.frame_index = 0
-
             self.update_time = pygame.time.get_ticks()
     
     def move(self, screen_width, screen_height):
-                
         SPEED = 10
         GRAVITY = 10
         JUMP_VELOCITY = -20
@@ -241,37 +228,32 @@ class Fighter():
             dx = SPEED
         if key[pygame.K_w] or key[pygame.K_SPACE]:
             dy = JUMP_VELOCITY
-            self.jump=True
+            self.jump = True
             self.image = pygame.image.load(f'public/images/{self.name}/1/idle0.png').convert_alpha()
 
         mouse_buttons = pygame.mouse.get_pressed()
-        if mouse_buttons[0]:
+        if mouse_buttons[0] and self.cooldowns[1] <= 0:
             if key[pygame.K_LSHIFT]:
-                draw_text("ULTIMATE", custom_font, gold, 197, 180)
-               
+                draw_text("ULTIMATE", self.font, (255, 215, 0), 197, 180)
                 self.attack_type = 4
             else:
-                draw_text("LIGHT ATTACK", custom_font, green, 197, 180)
-           
-                self.attack_type =1 
-            self.attack(boss1)   
-        elif mouse_buttons[1]:
+                draw_text("LIGHT ATTACK", self.font, (0, 255, 0), 197, 180)
+                self.attack_type = 1
             self.attack(boss1)
-            draw_text("SPECIAL ATTACK", custom_font, purple, 197, 180)
+        elif mouse_buttons[1] and self.cooldowns[2] <= 0:
+            self.attack(boss1)
+            draw_text("SPECIAL ATTACK", self.font, (128, 0, 128), 197, 180)
             self.attack_type = 2
-     
-        elif mouse_buttons[2]:
+        elif mouse_buttons[2] and self.cooldowns[3] <= 0:
             self.attack(boss1)
-            draw_text("HEAVY ATTACK", custom_font, red, 197, 180)
+            draw_text("HEAVY ATTACK", self.font, (255, 0, 0), 197, 180)
             self.attack_type = 3
         
-
-    # Update the action based on key release
+        # Update the action based on key release
         if not any(key):
             self.jump=True
             self.image = pygame.image.load(f'public/images/{self.name}/0/idle1.png').convert_alpha()
-           
-       
+
         dy += GRAVITY
 
         if self.rect.left + dx < 0:
@@ -289,136 +271,128 @@ class Fighter():
             self.flip = True
 
     def ai_move(self, screen_width, screen_height):
-
         if self.cooldown <= 0:
-            # Define movement constraints
             MAX_DX = 400  
             MAX_DY = 200  
 
-
-            # Calculate the maximum x and y bounaaries
             max_x = screen_width 
-            max_y = screen_height - self.rect.height*3
+            max_y = screen_height - self.rect.height * 3
 
-            # Generate random values for movement within constraints
             dx = random.randint(-MAX_DX, MAX_DX) 
             dy = random.randint(-MAX_DY, MAX_DY)
 
-            # Update the position
             new_x = self.rect.x + dx
             new_y = self.rect.y + dy
 
-            # Ensure the new position stays within the screen boundaries
             new_x = max(0, min(new_x, max_x))
             new_y = max(0, min(new_y, max_y))
 
-            # Update the position
             self.rect.x = new_x
             self.rect.y = new_y
 
-            # Set the cooldown period
-            self.cooldown = 60  # Increase cooldown for less frequent movements
+            self.cooldown = 60
         else:
-            # Decrease the cooldown period
             self.cooldown -= 1
 
-
     def attack(self, target):
-        # Add hitboxes
-        if self.cooldowns[self.attack_type] == 0:
-            # Define hitboxes for player attacks
+        if self.cooldowns[self.attack_type] <= 0:
             if self.attack_type == 1:
-                # Light Attack hitbox
+                
                 attack_hitbox = pygame.Rect(self.rect.centerx - (1 * self.rect.width * self.flip), 
                                             self.rect.y, self.rect.width, self.rect.height)
-                damage = self.atk
+                damage = self.atk - 25
+                light_attack_image = pygame.image.load('public\\images\\42-425182_sword-slash-effect-png.png').convert_alpha()
+                light_attack_pos = (self.rect.centerx - (1 * self.rect.width * self.flip), 
+                                            self.rect.y, self.rect.width, self.rect.height)
+                screen.blit(light_attack_image, light_attack_pos)
             elif self.attack_type == 2:
-                # Special Attack hitbox
-                attack_hitbox = self.rect.inflate(350, 0)  # Adjust the size as needed
-                damage = self.atk * 1.5
+                attack_hitbox = self.rect.inflate(350, 0)
+                damage = self.atk
             elif self.attack_type == 3:
-                # Heavy Attack hitbox
                 attack_hitbox = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), 
                                             self.rect.y, 2 * self.rect.width, self.rect.height)
                 damage = self.atk * 2
             elif self.attack_type == 4:
-                # Ultimate Attack hitbox
-                attack_hitbox = pygame.Rect(self.rect.left + 40, self.rect.top - 150, 1980, self.rect.height)
+                attack_hitbox = pygame.Rect(self.rect.left + 40, self.rect.top - 150, 1980, self.rect.height - 20)
                 damage = self.atk * 3
 
-                # Ultimate Attack sound
-                ultimate_attack_sound = pygame.mixer.Sound('public\hq-explosion-6288.mp3')
+                ultimate_attack_sound = pygame.mixer.Sound('public\\cannon-fire-161072.mp3')
                 ultimate_attack_sound.set_volume(0.5)
                 ultimate_attack_sound.play()
 
-                # Draw ultimate attack image
-                ultimate_attack_image = pygame.image.load('public\\images\\gryGwQGV1QEk1_HctbyWg4fabTwD4TW8oX3vVsSQ71s.png').convert_alpha()
+                ultimate_attack_image = pygame.image.load('public/images/gryGwQGV1QEk1_HctbyWg4fabTwD4TW8oX3vVsSQ71s.png').convert_alpha()
                 ultimate_attack_pos = (self.rect.left + 40, self.rect.top - 150, 1980, self.rect.height)
                 screen.blit(ultimate_attack_image, ultimate_attack_pos)
 
-                # Apply damage to the boss's health
-                target.hp -= damage
-                # Apply cooldown to the attack
-                self.cooldowns[self.attack_type] = self.cooldown_duration * 45
 
-            # Check for collision with boss
             if attack_hitbox.colliderect(target.rect):
-                # Play attack sound
                 self.attack_sound.play()
-                # Apply damage to the boss's health
                 target.hp -= damage
-                # Apply cooldown to the attack
-                self.cooldowns[self.attack_type] = self.cooldown_duration
 
-    
+            self.cooldowns[self.attack_type] = self.cooldown_durations[self.attack_type]
+
     def ai_attack(self, target):
-        # Check if the cooldown for AI attack has expired
         if self.cooldowns["ai_attack"] <= 0:
-            # Generate a random attack type
             self.attack_type = random.randint(1, 3)
-            # Calculate the damage based on the attack type
             damage = self.atk
-            
-            # Load and display the attack effect image
-            ai_attack_image = pygame.image.load('public/images/78294-light-glare-free-png-hq-thumb.png').convert_alpha()
-            screen.blit(ai_attack_image, (self.rect.left, self.rect.top - 150))
-            
-            # Define the circular hitbox
-            attack_radius = 100  # Adjust the radius as needed
-            attack_center = (self.rect.centerx, self.rect.centery - 150)  # Offset for position
-            attack_hitbox = pygame.Rect(attack_center[0] - attack_radius, attack_center[1] - attack_radius,
-                                         attack_radius * 2, attack_radius * 2)
 
-            # Check for collision with the target
+            self.attack_start_time = pygame.time.get_ticks()
+            self.show_attack_image = True
+            
+            attack_radius = 300
+            attack_center = (self.rect.centerx, self.rect.centery)
+            attack_hitbox = pygame.Rect(attack_center[0] - attack_radius, attack_center[1] - attack_radius, 2 * attack_radius, 2 * attack_radius)
+
             if attack_hitbox.colliderect(target.rect):
-                # Apply damage to the target
                 target.hp -= damage
-                print(f"{self.name} is attacking with attack type {self.attack_type}")
 
-            # Set the cooldown for AI attack
-            self.cooldowns["ai_attack"] = 300  # 5 seconds cooldown (300 frames at 60 FPS)
+            self.cooldowns["ai_attack"] = random.randint(300, 1000)
 
-                
-    #handle animation updates
+        elif self.show_attack_image and pygame.time.get_ticks() - self.attack_start_time < 2000:
+            ai_attack_image = pygame.image.load('public\\images\\Glowing-Golden-Light-PNG-Download-Image (1).png').convert_alpha()
+            ai_attack_sound = pygame.mixer.Sound('public\\hq-explosion-6288.mp3')
+            ai_attack_sound.set_volume(0.5)
+            screen.blit(ai_attack_image, (self.rect.left - 320, self.rect.top - 300))
+            ai_attack_sound.play()
+        else:
+            self.show_attack_image = False
+
     def update(self):
-        #check what action the player is performing
-      
-        animation_cooldown=300
-
-        #check if enough time has passed since the last update
+        animation_cooldown = 300
         if pygame.time.get_ticks() - self.update_time > animation_cooldown:
             self.frame_index += 1
             self.update_time = pygame.time.get_ticks()
-        #check if the animation has finished
-            if self.alive == False:
+            if not self.alive:
                 self.frame_index = len(self.animation_list[self.action]) - 1
+
     def update_cooldowns(self):
         for attack_type in self.cooldowns:
             if self.cooldowns[attack_type] > 0:
                 self.cooldowns[attack_type] -= 1
-  
-    def draw(self,screen):
-        screen.blit(pygame.transform.flip(self.image, self.flip, False),self.rect)
+
+    def draw(self, screen):
+        screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+        timer_font = pygame.font.Font(fontty, 22)
+
+        # Display cooldowns on screen
+        light_attack_text = timer_font.render(f"Light Attack: {self.cooldowns[1] / 60:.1f}s", True, (0, 255, 0))
+        special_attack_text = timer_font.render(f"Special Attack: {self.cooldowns[2] / 60:.1f}s", True, (128, 0, 128))
+        heavy_attack_text = timer_font.render(f"Heavy Attack: {self.cooldowns[3] / 60:.1f}s", True, (255, 0, 0))
+        ultimate_attack_text = timer_font.render(f"Ultimate Attack: {self.cooldowns[4] / 60:.1f}s", True, (255, 215, 0))
+
+        screen.blit(light_attack_text, (170, 170))
+        screen.blit(special_attack_text, (170, 200))
+        screen.blit(heavy_attack_text, (170, 230))
+        screen.blit(ultimate_attack_text, (170, 260))
+
+
+        
+
+def draw_text(text, font, color, x, y):
+    img = font.render(text, True, color)
+    screen.blit(img, (x, y))
+
+
     
 class HealthBar():
     def __init__(self, x, y, hp, max_hp, width):
@@ -450,7 +424,7 @@ class HealthBar():
 
 
 #set position of characters   
-knight = Fighter(327, 800, True, 'player', 1500, 50, 3,(sword_fx))
+knight = Fighter(327, 800, True, 'player', 1500, 150, 5,sword_fx)
 boss1 = Fighter(1520, 750, False, 'boss1', 10520, 650, 0,magic_fx)
 
 # set position of health bar
@@ -467,6 +441,7 @@ while run:
     knight.move(width, screen_height)
     # Call AI move function for boss1
     boss1.ai_move(width, screen_height)
+    boss1.ai_attack(knight)
 
     knight.update()
     boss1.update()
