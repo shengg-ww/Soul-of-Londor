@@ -176,16 +176,14 @@ class Fighter():
         self.cooldown=0
         self.cooldowns = {
             1: 0,  # Light Attack
-            2: 0,  # Special Attack
-            3: 0,  # Heavy Attack
-            4: 0,  # Ultimate Attack
+            2: 0,  # Heavy Attack
+            3: 0,  # ULtimate Attack
             "ai_attack": 0
         }
         self.cooldown_durations = {
-            1: 50,  # Light Attack cooldown duration
-            2: 200,  # Special Attack cooldown duration
-            3: 500,  # Heavy Attack cooldown duration
-            4: 1000   # Ultimate Attack cooldown duration
+            1: 500,  # Light Attack cooldown duration
+            2: 50,  # Heavy Attack cooldown duration
+            3: 500  # Ultimate Attack cooldown duration
         }
         self.attack_sound = sound
         self.hit = False
@@ -234,20 +232,17 @@ class Fighter():
         mouse_buttons = pygame.mouse.get_pressed()
         if mouse_buttons[0] and self.cooldowns[1] <= 0:
             if key[pygame.K_LSHIFT]:
-                draw_text("ULTIMATE", self.font, (255, 215, 0), 197, 180)
-                self.attack_type = 4
+                draw_text("ULTIMATE", self.font, (255, 215, 0), 537, 100)
+                self.attack_type = 3
             else:
-                draw_text("LIGHT ATTACK", self.font, (0, 255, 0), 197, 180)
+                draw_text("LIGHT ATTACK", self.font, (0, 255, 0), 537, 100)
                 self.attack_type = 1
             self.attack(boss1)
-        elif mouse_buttons[1] and self.cooldowns[2] <= 0:
+
+        elif mouse_buttons[2] and self.cooldowns[2] <= 0:
             self.attack(boss1)
-            draw_text("SPECIAL ATTACK", self.font, (128, 0, 128), 197, 180)
+            draw_text("HEAVY ATTACK", self.font, (255, 0, 0), 537, 100)
             self.attack_type = 2
-        elif mouse_buttons[2] and self.cooldowns[3] <= 0:
-            self.attack(boss1)
-            draw_text("HEAVY ATTACK", self.font, (255, 0, 0), 197, 180)
-            self.attack_type = 3
         
         # Update the action based on key release
         if not any(key):
@@ -297,39 +292,48 @@ class Fighter():
     def attack(self, target):
         if self.cooldowns[self.attack_type] <= 0:
             if self.attack_type == 1:
-                
-                attack_hitbox = pygame.Rect(self.rect.centerx - (1 * self.rect.width * self.flip), 
+                attack_hitbox = pygame.Rect(self.rect.centerx - (1 * self.rect.width * self.flip),
                                             self.rect.y, self.rect.width, self.rect.height)
                 damage = self.atk - 25
-                light_attack_image = pygame.image.load('public\\images\\42-425182_sword-slash-effect-png.png').convert_alpha()
-                light_attack_pos = (self.rect.centerx - (1 * self.rect.width * self.flip), 
+                self.attack_sound = pygame.mixer.Sound('public\\bloody-blade-103593.mp3')
+                self.attack_sound.set_volume(0.5)
+                self.attack_sound.play()
+                self.attack_image = pygame.image.load('public\\images\\42-425182_sword-slash-effect-png.png').convert_alpha()
+                self.attack_pos = (self.rect.centerx - (1 * self.rect.width * self.flip),
                                             self.rect.y, self.rect.width, self.rect.height)
-                screen.blit(light_attack_image, light_attack_pos)
             elif self.attack_type == 2:
-                attack_hitbox = self.rect.inflate(350, 0)
-                damage = self.atk
-            elif self.attack_type == 3:
-                attack_hitbox = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), 
+                attack_hitbox = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip),
                                             self.rect.y, 2 * self.rect.width, self.rect.height)
-                damage = self.atk * 2
-            elif self.attack_type == 4:
-                attack_hitbox = pygame.Rect(self.rect.left + 40, self.rect.top - 150, 1980, self.rect.height - 20)
                 damage = self.atk * 3
+                self.attack_sound = pygame.mixer.Sound('public\\9mm-pistol-shoot-short-reverb-7152.mp3')
+                self.attack_sound.set_volume(0.5)
+                self.attack_sound.play()
+                self.attack_image = pygame.image.load('public\\images\\slash-effect-png-picture-in-full-hd-download-high-quality-image-now.png').convert_alpha()
+                self.attack_pos = (self.rect.centerx - (2 * self.rect.width * self.flip),
+                                            self.rect.y, 2 * self.rect.width, self.rect.height)
+            elif self.attack_type == 3:
+                attack_hitbox = pygame.Rect(self.rect.centerx - (12*self.rect.width * self.flip),
+                                            self.rect.y, 12* self.rect.width, self.rect.height)
+                damage = self.atk * 5
 
-                ultimate_attack_sound = pygame.mixer.Sound('public\\cannon-fire-161072.mp3')
-                ultimate_attack_sound.set_volume(0.5)
-                ultimate_attack_sound.play()
+                self.attack_sound = pygame.mixer.Sound('public\\cannon-fire-161072.mp3')
+                self.attack_sound.set_volume(0.5)
+                self.attack_sound.play()
 
-                ultimate_attack_image = pygame.image.load('public/images/gryGwQGV1QEk1_HctbyWg4fabTwD4TW8oX3vVsSQ71s.png').convert_alpha()
-                ultimate_attack_pos = (self.rect.left + 40, self.rect.top - 150, 1980, self.rect.height)
-                screen.blit(ultimate_attack_image, ultimate_attack_pos)
-
+                self.attack_image = pygame.image.load('public/images/gryGwQGV1QEk1_HctbyWg4fabTwD4TW8oX3vVsSQ71s.png').convert_alpha()
+                self.attack_pos = (self.rect.centerx - ( 7*self.rect.width * self.flip),
+                                            self.rect.y, 12* self.rect.width, self.rect.height)
 
             if attack_hitbox.colliderect(target.rect):
                 self.attack_sound.play()
                 target.hp -= damage
 
             self.cooldowns[self.attack_type] = self.cooldown_durations[self.attack_type]
+            self.attack_start_time = pygame.time.get_ticks()
+            screen.blit(self.attack_image, self.attack_pos)
+
+
+
 
     def ai_attack(self, target):
         if self.cooldowns["ai_attack"] <= 0:
@@ -372,18 +376,28 @@ class Fighter():
 
     def draw(self, screen):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+
         timer_font = pygame.font.Font(fontty, 22)
+        
+        # Determine colors based on cooldowns
+        light_attack_color = (0, 255, 0) if self.cooldowns[1] <= 0 else (255, 0, 0)
+        heavy_attack_color = (0, 255, 0) if self.cooldowns[2] <= 0 else (255, 0, 0)
+        ultimate_attack_color = (0, 255, 0) if self.cooldowns[3] <= 0 else (255, 0, 0)
 
-        # Display cooldowns on screen
-        light_attack_text = timer_font.render(f"Light Attack: {self.cooldowns[1] / 60:.1f}s", True, (0, 255, 0))
-        special_attack_text = timer_font.render(f"Special Attack: {self.cooldowns[2] / 60:.1f}s", True, (128, 0, 128))
-        heavy_attack_text = timer_font.render(f"Heavy Attack: {self.cooldowns[3] / 60:.1f}s", True, (255, 0, 0))
-        ultimate_attack_text = timer_font.render(f"Ultimate Attack: {self.cooldowns[4] / 60:.1f}s", True, (255, 215, 0))
+        light_attack_text = timer_font.render(f"Light Attack: {self.cooldowns[1] // 100:.1f}s", True, light_attack_color)
+        heavy_attack_text = timer_font.render(f"Heavy Attack: {self.cooldowns[2] // 100:.1f}s", True, heavy_attack_color)
+        ultimate_attack_text = timer_font.render(f"Ultimate Attack: {self.cooldowns[3] // 100:.1f}s", True, ultimate_attack_color)
 
-        screen.blit(light_attack_text, (170, 170))
-        screen.blit(special_attack_text, (170, 200))
-        screen.blit(heavy_attack_text, (170, 230))
-        screen.blit(ultimate_attack_text, (170, 260))
+        y_start = 170
+        y_gap = 30
+
+    
+
+        self.update_cooldowns()    
+        screen.blit(light_attack_text, (170, y_start))
+        screen.blit(heavy_attack_text, (170, y_start + 2 * y_gap))
+        screen.blit(ultimate_attack_text, (170, y_start + 3 * y_gap))
+
 
 
         
